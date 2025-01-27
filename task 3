@@ -1,0 +1,38 @@
+from sklearn.cluster import KMeans
+from sklearn.metrics import davies_bouldin_score
+import matplotlib.pyplot as plt
+
+# Clustering features
+clustering_features = customer_profiles_encoded
+
+# Optimal number of clusters using Davies-Bouldin Index
+db_scores = []
+for k in range(2, 11):
+    kmeans = KMeans(n_clusters=k, random_state=42)
+    kmeans.fit(clustering_features)
+    labels = kmeans.labels_
+    db_score = davies_bouldin_score(clustering_features, labels)
+    db_scores.append(db_score)
+
+# Plot DB Index for different cluster counts
+plt.plot(range(2, 11), db_scores, marker='o')
+plt.title('Davies-Bouldin Index for Different Cluster Counts')
+plt.xlabel('Number of Clusters')
+plt.ylabel('DB Index')
+plt.show()
+
+# Choose optimal clusters and fit model
+optimal_k = db_scores.index(min(db_scores)) + 2
+final_model = KMeans(n_clusters=optimal_k, random_state=42)
+final_model.fit(clustering_features)
+cluster_labels = final_model.labels_
+
+# Add cluster labels to data and analyze
+customer_profiles['Cluster'] = cluster_labels
+cluster_summary = customer_profiles.groupby('Cluster').mean()
+
+# Visualization
+plt.figure(figsize=(10, 6))
+sns.scatterplot(x=clustering_features[:, 0], y=clustering_features[:, 1], hue=cluster_labels, palette='viridis')
+plt.title('Customer Segments')
+plt.show()
