@@ -1,0 +1,41 @@
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.preprocessing import StandardScaler
+
+# Feature engineering: aggregate transaction data
+customer_features = merged_data.groupby('CustomerID').agg({
+    'TotalValue': 'sum', 
+    'TransactionID': 'count',
+    'Category': lambda x: ','.join(x)  # Capture product categories purchased
+}).rename(columns={'TotalValue': 'TotalSpent', 'TransactionID': 'TransactionCount'})
+
+# Encode categorical data (e.g., Region, Category)
+customer_profiles = customers.merge(customer_features, on='CustomerID')
+customer_profiles_encoded = pd.get_dummies(customer_profiles[['Region', 'TotalSpent', 'TransactionCount']], drop_first=True)
+
+# Normalize features
+scaler = StandardScaler()
+scaled_features = scaler.fit_transform(customer_profiles_encoded)
+
+# Compute cosine similarity
+similarity_matrix = cosine_similarity(scaled_features)
+
+# Get top 3 similar customers
+def get_similar_customers(customer_id, similarity_matrix, customer_ids):
+    idx = customer_ids.index(customer_id)
+    similar_scores = list(enumerate(similarity_matrix[idx]))
+    sorted_scores = sorted(similar_scores, key=lambda x: x[1], reverse=True)[1:4]
+    return [(customer_ids[i], round(score, 2)) for i, score in sorted_scores]
+
+customer_ids = customer_profiles['CustomerID'].tolist()
+lookalike_data = {
+    customer: get_similar_customers(customer, similarity_matrix, customer_ids)
+    for customer in customer_ids[:20]
+}
+
+# Save to CSV
+import csv
+with open('Katam_Chandra_Harsha_Lookalike.csv', 'w', newline='') as f:
+    writer = csv.writer(f)
+    writer.writerow(['CustomerID', 'SimilarCustomers'])
+    for cust, similar in lookalike_data.items():
+        writer.writerow([cust, similar])
