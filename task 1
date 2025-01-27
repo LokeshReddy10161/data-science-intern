@@ -1,0 +1,48 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load datasets
+customers = pd.read_csv('Customers.csv')
+products = pd.read_csv('Products.csv')
+transactions = pd.read_csv('Transactions.csv')
+
+# Convert dates to datetime format
+customers['SignupDate'] = pd.to_datetime(customers['SignupDate'])
+transactions['TransactionDate'] = pd.to_datetime(transactions['TransactionDate'])
+
+# Merge datasets for comprehensive analysis
+merged_data = transactions.merge(customers, on='CustomerID').merge(products, on='ProductID')
+
+# EDA
+# 1. Number of unique customers, products, and transactions
+unique_customers = customers['CustomerID'].nunique()
+unique_products = products['ProductID'].nunique()
+unique_transactions = transactions['TransactionID'].nunique()
+
+# 2. Most popular product categories
+popular_categories = merged_data['Category'].value_counts()
+
+# 3. Customer growth over time
+customer_growth = customers.groupby(customers['SignupDate'].dt.to_period('M')).size()
+
+# 4. Total revenue per region
+revenue_per_region = merged_data.groupby('Region')['TotalValue'].sum()
+
+# 5. Monthly sales trends
+monthly_sales = merged_data.groupby(merged_data['TransactionDate'].dt.to_period('M'))['TotalValue'].sum()
+
+# Visualization examples
+plt.figure(figsize=(10, 6))
+sns.barplot(x=popular_categories.index, y=popular_categories.values)
+plt.title('Most Popular Product Categories')
+plt.show()
+
+plt.figure(figsize=(10, 6))
+customer_growth.plot(kind='bar', title='Customer Growth Over Time')
+plt.show()
+
+plt.figure(figsize=(10, 6))
+revenue_per_region.plot(kind='pie', autopct='%1.1f%%', title='Revenue Per Region')
+plt.ylabel('')
+plt.show()
